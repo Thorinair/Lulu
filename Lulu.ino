@@ -1,12 +1,15 @@
 #include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 #include <ESPSoftwareSerial.h>
 #include <Brain.h>
+#include <OSCMessage.h>
 
 #include <TwiFi.h>
 
 #include "Configuration.h"
 #include "ConfigurationWiFi.h"
 #include "ConfigurationLuna.h"
+#include "ConfigurationVRChat.h"
 
 
 /* PIN Definitions */
@@ -35,6 +38,10 @@
 /* Objects */
 SoftwareSerial softSerial(PIN_SERIAL_RX, PIN_SERIAL_TX, false, 256);
 Brain brain(softSerial);
+WiFiClient client;
+WiFiUDP udp;
+const IPAddress outIp(VRCHAT_IP_0, VRCHAT_IP_1, VRCHAT_IP_2, VRCHAT_IP_3);
+OSCMessage msg(VRCHAT_PATH);
 
 /* Setup Functions */
 void setupPins();
@@ -58,6 +65,7 @@ int loopCounter;
 bool initial;
 bool powerState;
 bool blinking;
+int failReboot = 0;
 
 /* Setup Functions */
 void setupPins() {
@@ -91,7 +99,6 @@ int openURL(String url) {
     if (LUNA_DEBUG)
         Serial.println("Opening URL: " + String(LUNA_IP) + url);
         
-    WiFiClient client;
     if (!client.connect(LUNA_IP, LUNA_PORT)) {  
         if (LUNA_DEBUG)
             Serial.println("Error connecting!");
@@ -156,10 +163,22 @@ void processInterval() {
         url += "&wave6="      + String(eegwave6);
         url += "&wave7="      + String(eegwave7);
 
-        if (openURL(url) == URL_RESULT_DONE)
+        if (openURL(url) == URL_RESULT_DONE) {
              flashStatusLED(FLASH_TYPE_DONE);
-        else     
-             flashStatusLED(FLASH_TYPE_FAIL);    
+             failReboot = 0;
+         }
+        else { 
+             flashStatusLED(FLASH_TYPE_FAIL);
+             failReboot++;
+             if (failReboot >= REBOOT_FAILURE_COUNT)
+                ESP.restart();
+         }
+
+        msg.add((float) eegattention / 100);
+        udp.beginPacket(outIp, VRCHAT_PORT);
+        msg.send(udp);
+        udp.endPacket();
+        msg.empty();
     }
 }
 
@@ -218,7 +237,9 @@ void setup() {
         WIFI_DEBUG
         );
     twifiConnect(true);
-    openURL(String(LUNA_URL_BOOT) + "&key=" + String(LUNA_KEY) + "&device=" + String(WIFI_HOST));
+    //openURL(String(LUNA_URL_BOOT) + "&key=" + String(LUNA_KEY) + "&device=" + String(WIFI_HOST));
+
+    udp.begin(8888);
 
     setLED(LED_MODE_DIM);
 }

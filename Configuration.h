@@ -5,6 +5,9 @@
 /* Enable debugging through the console. */
 #define DEBUG_ENABLE false
 
+/* Automatic reboots. */
+#define REBOOT_FAILURE_COUNT 3
+
 
 
 /********
