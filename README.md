@@ -4,3 +4,5 @@ Lulu is an ESP8266 powered "bridge" for connecting a MindFlex EEG headset with [
 ## Requirements
 * [Arduino Brain Library](https://github.com/kitschpatrol/Brain)
 * [OSC Library For ESP8266](https://github.com/stahlnow/OSCLib-for-ESP8266)
+* [TwiFi Library](https://github.com/Thorinair/TwiFi)
+* [EspSoftwareSerial Library](https://github.com/plerup/espsoftwareserial)
